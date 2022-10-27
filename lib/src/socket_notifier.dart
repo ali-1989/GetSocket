@@ -8,7 +8,7 @@ class Close {
 
   @override
   String toString() {
-    return 'Closed by server, $reason,  $message';
+    return 'Ws Closed by server, $reason,  $message';
   }
 }
 ///=========================================================================================================
@@ -68,8 +68,8 @@ class SocketNotifier {
       if (_onEvents.containsKey(event)) {
         _onEvents[event]?.call(data);
       }
-
-    } catch (err) {
+    }
+    catch (err) {
       return;
     }
   }

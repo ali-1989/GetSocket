@@ -34,7 +34,13 @@ class BaseWebSocket {
     try {
       connectionStatus = ConnectionStatus.connecting;
 
-      socket = allowSelfSigned ? await _connectForSelfSignedCert(url) : await WebSocket.connect(url);
+      if(allowSelfSigned){
+        socket = await _connectForSelfSignedCert(url).then<WebSocket?>((value) => value).onError((error, st) => null);
+      }
+      else {
+        socket = await WebSocket.connect(url).then<WebSocket?>((value) => value).onError((error, st) => null);
+      }
+
       socket!.pingInterval = _ping;
 
       socketNotifier.open?.call();
@@ -48,7 +54,7 @@ class BaseWebSocket {
       }
       , onDone: () {
         connectionStatus = ConnectionStatus.closed;
-        socketNotifier.notifyClose(Close('Connection Closed', socket?.closeCode));
+        socketNotifier.notifyClose(Close('ws connection closed', socket?.closeCode));
       }
       , cancelOnError: true);
 
@@ -57,6 +63,11 @@ class BaseWebSocket {
     on SocketException catch (e) {
       connectionStatus = ConnectionStatus.closed;
       socketNotifier.notifyError(Close(e.osError?.message, e.osError?.errorCode));
+      return;
+    }
+    catch (e) {
+      connectionStatus = ConnectionStatus.closed;
+      socketNotifier.notifyError(Close(e.toString(), 0));
       return;
     }
   }
@@ -102,14 +113,14 @@ class BaseWebSocket {
     send(jsonEncode({'type': event, 'data': data}));
   }
 
-  Future<WebSocket> _connectForSelfSignedCert(url) async {
+  Future<WebSocket> _connectForSelfSignedCert(String url) async {
     try {
-      final r = Random();
+      final Random r = Random();
       final key = base64.encode(List<int>.generate(8, (_) => r.nextInt(255)));
       final client = HttpClient(context: SecurityContext());
 
       client.badCertificateCallback = (X509Certificate cert, String host, int port) {
-        print('BaseWebSocket: Allow self-signed certificate => $host:$port. ');
+        print('Base-WebSocket: Allow self-signed certificate => $host:$port. ');
         return true;
       };
 
